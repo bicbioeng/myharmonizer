@@ -18,6 +18,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.patches import Patch
 
+from pathlib import Path
+import os
+import re
+
+import rpy2.robjects as robjects
+from rpy2.robjects import pandas2ri
+from rpy2.robjects.conversion import localconverter
+
 class GlobalMinMaxScaler(BaseEstimator, TransformerMixin):
     """Min max scaling based on global min and max values"""
     def __init__(self, min_=None, max_=None):
@@ -267,6 +275,9 @@ def calculate_manhattan(Xtest):
 
     return pd.DataFrame(dis_m, index=Xtest.index, columns=Xtest.index)
 
+
+
+
 # Main class
 class myHarmonizer:
     def __init__(self, myHarmonizerPath):
@@ -294,20 +305,23 @@ class myHarmonizer:
         if not type(data) == pd.DataFrame:
             raise TypeError("Input data is not formatted as a pandas dataframe.")
 
-        ## Add a pseudocount of 1 to all samples and cap at 99th percentile (sample-wise)
-        scap = data.quantile(0.99, axis=1).apply(np.ceil) + 1
-        dataz = (data + 1).clip(0, scap, axis=0).astype(int)
-
         ## Remove genes not in feature list
         raw_medians = pd.Series(json.loads(self.models['raw_medians']))
-        remove = dataz.columns.isin(raw_medians.index)
-        dataz = dataz.loc[:, remove]
+        remove = data.columns.isin(raw_medians.index)
+        data = data.loc[:, remove]
         print("{} gene features were excluded because they could not be mapped to the knowledge base.".format(
             sum(~remove)))
 
         ## Impute features not in feature list as well as NaN values
-        include = ~raw_medians.index.isin(dataz.columns)
-        dataz = dataz.reindex(columns=raw_medians.index)
+        include = ~raw_medians.index.isin(data.columns)
+        dataz = data.reindex(columns=raw_medians.index)
+
+        ## Add a pseudocount of 1 to all samples and cap at 99th percentile (sample-wise)
+        dataz = dataz + 1
+        scap = dataz.quantile(0.99, axis=1).apply(np.ceil)
+        dataz = (dataz).clip(0, scap, axis=0).astype(int)
+
+
 
         for c in dataz.columns:
             dataz.loc[dataz[c].isnull(), c] = raw_medians[c]
@@ -335,10 +349,94 @@ class myHarmonizer:
                 "Expected gene features are not found in dataset. Try the niceify method before this method.")
 
         ## Load normalization model
-        normalize = json_to_sklearn(self.models['preprocessing'],
-                                    self.modelmeta['normalize_scale']['preprocessing_method'][0])
+        prep_method = self.modelmeta['normalize_scale']['preprocessing_method'][0]
+        if prep_method in ['LS', 'QT', 'TPM', 'RLE']:
+            normalize = json_to_sklearn(self.models['preprocessing'],
+                                        prep_method)
 
-        return normalize.transform(data)
+            return normalize.transform(data)
+
+        elif prep_method in ['VST', 'GeVST', 'TMM', 'GeTMM']:
+            r = robjects.r
+
+            # write temp .rds file
+            poi = (Path.cwd() / 'temp.rds').as_posix()
+            with open(poi, "w") as handle:
+                handle.write(self.models['preprocessing'])
+
+            # cast pandas df as r df
+            with localconverter(robjects.default_converter + pandas2ri.converter):
+                r_df = robjects.conversion.py2rpy(data)
+
+                r_df.colnames = r.sub("-", "\\.", r.colnames(r_df))
+
+            match prep_method:
+                case 'VST':
+                    # Read dispersion list
+                    dispersionList = r.readRDS(poi)
+
+                    # Get functions
+                    r.source('VST_preprocessing_local.R')
+
+                    # Run vst
+                    r_prep = r.vst_preprocessing(r_df, geneCorr='none', dispersionList=dispersionList)
+
+                    # Convert back to python object
+                    with localconverter(robjects.default_converter + pandas2ri.converter):
+                        prep = robjects.conversion.rpy2py(r_prep)
+
+                    # Remove temporary rds file
+                    os.remove(poi)
+
+                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+
+                case 'GeVST':
+                    dispersionList = r.readRDS(poi)
+
+                    r.source('VST_preprocessing_local.R')
+                    r_prep = r.vst_preprocessing(r_df, geneCorr='rpk', dispersionList=dispersionList)
+
+                    with localconverter(robjects.default_converter + pandas2ri.converter):
+                        prep = robjects.conversion.rpy2py(r_prep)
+
+                    # Remove temporary rds file
+                    os.remove(poi)
+
+                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+
+                case 'TMM':
+                    train_params = r.readRDS(poi)
+
+                    r.source('TMM_preprocessing_local.R')
+                    r_prep = r.tmm_preprocessing(r_df, referenceSample=train_params)
+
+                    with localconverter(robjects.default_converter + pandas2ri.converter):
+                        prep = robjects.conversion.rpy2py(r_prep)
+
+                    # Remove temporary rds file
+                    os.remove(poi)
+
+                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+
+                case 'GeTMM':
+                    train_params = r.readRDS(poi)
+
+                    r.source('TMM_preprocessing_local.R')
+                    r_prep = r.g_tmm_preprocessing(r_df, referenceSample=train_params)
+
+                    with localconverter(robjects.default_converter + pandas2ri.converter):
+                        prep = robjects.conversion.rpy2py(r_prep)
+
+                    # Remove temporary rds file
+                    os.remove(poi)
+
+                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+
+        elif prep_method == 'None':
+            return data
+
+        else:
+            raise ValueError(prep_method + ' preprocessing method from myHarmonizer object is unknown.')
 
     def scale(self, data):
         """Scale a clean dataset to bring it to a comparable representation to the scaled data in the knowledge
@@ -352,10 +450,13 @@ class myHarmonizer:
         if not type(data) == pd.DataFrame:
             raise TypeError("Input data is not formatted as a pandas dataframe.")
 
-        raw_medians = pd.Series(json.loads(self.models['raw_medians']))
-        if not raw_medians.index.equals(data.columns):
-            raise IndexError(
-                "Expected gene features are not found in dataset. Try the niceify method before this method.")
+        # raw_medians = pd.Series(json.loads(self.models['raw_medians']))
+        # # When R imports data, it replaces - with . leading to changes in the feature names
+        # datacolumns_r = pd.Index([re.sub(r"-", r".", d) for d in raw_medians.index])
+        #
+        # if (not raw_medians.index.equals(data.columns)) and (not datacolumns_r.equals(data.columns)):
+        #     raise IndexError(
+        #         "Expected gene features are not found in dataset. Try the niceify method before this method.")
 
         ## Load normalization model
         scaling = json_to_sklearn(self.models['scaling'],
@@ -375,10 +476,13 @@ class myHarmonizer:
         if not type(data) == pd.DataFrame:
             raise TypeError("Input data is not formatted as a pandas dataframe.")
 
-        raw_medians = pd.Series(json.loads(self.models['raw_medians']))
-        if not raw_medians.index.equals(data.columns):
-            raise IndexError(
-                "Expected gene features are not found in dataset. Try the niceify method before this method.")
+        # raw_medians = pd.Series(json.loads(self.models['raw_medians']))
+        # # When R imports data, it replaces - with . leading to changes in the feature names
+        # datacolumns_r = pd.Index([re.sub(r"-", r".", d) for d in raw_medians.index])
+        #
+        # if (not raw_medians.index.equals(data.columns)) and (not datacolumns_r.equals(data.columns)):
+        #     raise IndexError(
+        #         "Expected gene features are not found in dataset. Try the niceify method before this method.")
 
         ## Load encoder
         architecture = self.models['encoder_model_architecture']
