@@ -432,7 +432,7 @@ class myHarmonizer:
 
                     return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
 
-        elif prep_method == 'None':
+        elif prep_method == 'none':
             return data
 
         else:
