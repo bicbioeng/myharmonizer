@@ -1,0 +1,11 @@
+scikit-learn
+pandas
+numpy
+scipy
+jupyter
+matplotlib
+Pillow
+itertools 
+seaborn
+pathlib
+rpy2
