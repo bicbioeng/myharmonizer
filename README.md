@@ -4,7 +4,7 @@ Python package to harmonize and evaluate similarity between new data and an exis
 ## Installation
 ### Using Docker
 ```
-docker run -d -e GRANT_SUDO=yes --user root --rm -p 8888:8888 -e NB_USER='jovyan' -e CHOWN_HOME=yes -w "/app" -e CHOWN_HOME_OPTS='-R' -v /home/tuyendo/USD/app/:/app --name Myharmonizer myharmonizer
+docker run -d -e GRANT_SUDO=yes --user root --rm -p 8888:8888 -e NB_USER='jovyan' -e CHOWN_HOME=yes -w "/app" -e CHOWN_HOME_OPTS='-R' -v /home/tuyendo/USD/app/:/app --name Myharmonizer us-central1-docker.pkg.dev/nosi-usd-biofilm/nosi-usd-biofilm-arti/myharmonizer
 ```
 Parameters:
  - -d: detach mode
