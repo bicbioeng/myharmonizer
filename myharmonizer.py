@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow.keras import backend
 
 from itertools import combinations
-from scipy.spatial.distance import cityblock
+from scipy.spatial import distance_matrix
 from scipy import stats
 
 import matplotlib.pyplot as plt
@@ -251,31 +251,13 @@ def calculate_ccc(Xtest):
     ccc = numerator.div(denominator)
     return ccc
 
+
 def calculate_euc(Xtest):
-    # comb = pd.DataFrame(combinations(Xtest.index, 2))
-    dis_m = np.zeros((Xtest.shape[0], Xtest.shape[0]))
+    return pd.DataFrame(distance_matrix(Xtest, Xtest), index=Xtest.index, columns=Xtest.index)
 
-    for i in range(Xtest.shape[0]):
-        for j in range(Xtest.shape[0]):
-            dis = np.linalg.norm(Xtest.iloc[i] - Xtest.iloc[j])
-            dis_m[i, j] = dis
-            dis_m[j, i] = dis
-
-    return pd.DataFrame(dis_m, index=Xtest.index, columns=Xtest.index)
 
 def calculate_manhattan(Xtest):
-    comb = pd.DataFrame(combinations(Xtest.index, 2))
-    dis_m = np.zeros((Xtest.shape[0], Xtest.shape[0]))
-
-    for i in range(Xtest.shape[0]):
-        for j in range(Xtest.shape[0]):
-            dis = cityblock(Xtest.iloc[i], Xtest.iloc[j])
-            dis_m[i, j] = dis
-            dis_m[j, i] = dis
-
-    return pd.DataFrame(dis_m, index=Xtest.index, columns=Xtest.index)
-
-
+    return pd.DataFrame(distance_matrix(Xtest, Xtest, p=1), index=Xtest.index, columns=Xtest.index)
 
 
 # Main class
