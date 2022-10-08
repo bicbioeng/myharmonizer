@@ -275,6 +275,7 @@ class myHarmonizer:
         self.models = harmonizer['models']
         self.data = pd.read_json(harmonizer['data'])
         self.data.columns = self.data.columns.astype('str')
+        self.features = pd.Series(json.loads(self.models['raw_medians'])).index
 
     def niceify(self, data):
         """Clean a new dataset to bring it to a comparable representation as the raw data in the knowledge
