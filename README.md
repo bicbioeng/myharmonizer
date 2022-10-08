@@ -87,13 +87,23 @@ toy_mH = mh.myHarmonizer(files(myharmonizer) / 'myHarmonizer-YYYY_mm_dd-HH_MM_SS
 
 ### Generate synthetic data
 ```
-# Get the raw feature list for the toy dataset
+# Get a shortened feature list for the toy dataset
 rawfeatures = toy_mH.modelmeta['encoder_metrics']['features']
 
 # Generate 5 random samples
 newdata = pd.DataFrame(np.random.poisson(size=(5,len(rawfeatures))), 
     index=['A', 'B', 'C', 'D', 'E'],
     columns=rawfeatures)
+```
+
+When running read user data, please format data as a pandas DataFrame with samples as rows
+and unique features as columns. While the feature list will be reconciled, users should choose a 
+feature identifier (e.g. ENSEMBL, Official Gene Symbol) that most closely aligns with that
+of the knowledge base. The original feature list for the knowledge base can be conveniently
+accessed as the 'features' attribute of the myHarmonizer class if unknown:
+
+```
+toy_mH.features
 ```
 
 ### Transform synthetic data to representation space of toy myHarmonizer knowledge base
