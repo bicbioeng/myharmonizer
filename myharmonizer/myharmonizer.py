@@ -171,20 +171,21 @@ def json_to_sklearn(data, modeltype):
             p = np.array(p)
         if data['init_params_types'][name] == 'Series':
             p = pd.Series(p, index=data['init_params_index'][name])
-
-    match modeltype:
-        case 'feature':
-            model = MinMaxScaler(**data['init_params'])
-        case 'global':
-            model = GlobalMinMaxScaler(**data['init_params'])
-        case 'LS':
-            model = LSPreprocessing(**data['init_params'])
-        case 'TPM':
-            model = TPMPreprocessing(**data['init_params'])
-        case 'QT':
-            model = QuantilePreprocessing(**data['init_params'])
-        case 'RLE':
-            model = RLEPreprocessing(**data['init_params'])
+    
+    if modeltype == 'feature':
+        model = MinMaxScaler(**data['init_params'])
+    elif modeltype == 'global':
+        model = GlobalMinMaxScaler(**data['init_params'])
+    elif modeltype == 'LS':
+        model = LSPreprocessing(**data['init_params'])
+    elif modeltype == 'TPM':
+        model = TPMPreprocessing(**data['init_params'])
+    elif modeltype == 'QT':
+        model = QuantilePreprocessing(**data['init_params'])
+    elif modeltype == 'RLE':
+        model = RLEPreprocessing(**data['init_params'])
+    else:
+        raise ValueError('modeltype not one of feature, global, LS, TPM, QT or RLE.')
 
     for name, p in data['model_params'].items():
         typep = data['model_params_types'][name]
@@ -266,10 +267,14 @@ class myHarmonizer:
             harmonizer = json.load(handle)
 
         self.myHarmonizer_version = harmonizer['myHarmonizer_version']
-        self.metadata = harmonizer['metadata']
+        try:
+            self.metadata = pd.read_json(harmonizer['metadata'])
+        except:
+            self.metadata = harmonizer['metadata']
         self.modelmeta = harmonizer['modelmeta']
         self.models = harmonizer['models']
-        self.data = harmonizer['data']
+        self.data = pd.read_json(harmonizer['data'])
+        self.data.columns = self.data.columns.astype('str')
 
     def niceify(self, data):
         """Clean a new dataset to bring it to a comparable representation as the raw data in the knowledge
@@ -295,6 +300,7 @@ class myHarmonizer:
         ## Impute features not in feature list as well as NaN values
         include = ~raw_medians.index.isin(data.columns)
         dataz = data.reindex(columns=raw_medians.index)
+        dataz = dataz.fillna(raw_medians[include]).astype(int)
 
         ## Add a pseudocount of 1 to all samples and cap at 99th percentile (sample-wise)
         dataz = dataz + 1
@@ -349,68 +355,68 @@ class myHarmonizer:
                 r_df = robjects.conversion.py2rpy(data)
 
                 r_df.colnames = r.sub("-", "\\.", r.colnames(r_df))
+                
+            if prep_method == 'VST':
+                # Read dispersion list
+                dispersionList = r.readRDS(poi)
 
-            match prep_method:
-                case 'VST':
-                    # Read dispersion list
-                    dispersionList = r.readRDS(poi)
+                # Get functions
+                r.source('VST_preprocessing_local.R')
 
-                    # Get functions
-                    r.source('VST_preprocessing_local.R')
+                # Run vst
+                r_prep = r.vst_preprocessing(r_df, geneCorr='none', dispersionList=dispersionList)
 
-                    # Run vst
-                    r_prep = r.vst_preprocessing(r_df, geneCorr='none', dispersionList=dispersionList)
+                # Convert back to python object
+                with localconverter(robjects.default_converter + pandas2ri.converter):
+                    prep = robjects.conversion.rpy2py(r_prep)
 
-                    # Convert back to python object
-                    with localconverter(robjects.default_converter + pandas2ri.converter):
-                        prep = robjects.conversion.rpy2py(r_prep)
+                # Remove temporary rds file
+                os.remove(poi)
 
-                    # Remove temporary rds file
-                    os.remove(poi)
+                return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+            
+            elif prep_method == 'GeVST':
+                dispersionList = r.readRDS(poi)
 
-                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+                r.source('VST_preprocessing_local.R')
+                r_prep = r.vst_preprocessing(r_df, geneCorr='rpk', dispersionList=dispersionList)
 
-                case 'GeVST':
-                    dispersionList = r.readRDS(poi)
+                with localconverter(robjects.default_converter + pandas2ri.converter):
+                    prep = robjects.conversion.rpy2py(r_prep)
 
-                    r.source('VST_preprocessing_local.R')
-                    r_prep = r.vst_preprocessing(r_df, geneCorr='rpk', dispersionList=dispersionList)
+                # Remove temporary rds file
+                os.remove(poi)
 
-                    with localconverter(robjects.default_converter + pandas2ri.converter):
-                        prep = robjects.conversion.rpy2py(r_prep)
+                return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+            
+            elif prep_method == 'TMM':
+                train_params = r.readRDS(poi)
 
-                    # Remove temporary rds file
-                    os.remove(poi)
+                r.source('TMM_preprocessing_local.R')
+                r_prep = r.tmm_preprocessing(r_df, referenceSample=train_params)
 
-                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+                with localconverter(robjects.default_converter + pandas2ri.converter):
+                    prep = robjects.conversion.rpy2py(r_prep)
 
-                case 'TMM':
-                    train_params = r.readRDS(poi)
+                # Remove temporary rds file
+                os.remove(poi)
 
-                    r.source('TMM_preprocessing_local.R')
-                    r_prep = r.tmm_preprocessing(r_df, referenceSample=train_params)
+                return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+            
+            elif prep_method == 'GeTMM':
+                train_params = r.readRDS(poi)
 
-                    with localconverter(robjects.default_converter + pandas2ri.converter):
-                        prep = robjects.conversion.rpy2py(r_prep)
+                r.source('TMM_preprocessing_local.R')
+                r_prep = r.g_tmm_preprocessing(r_df, referenceSample=train_params)
 
-                    # Remove temporary rds file
-                    os.remove(poi)
+                with localconverter(robjects.default_converter + pandas2ri.converter):
+                    prep = robjects.conversion.rpy2py(r_prep)
 
-                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
+                # Remove temporary rds file
+                os.remove(poi)
 
-                case 'GeTMM':
-                    train_params = r.readRDS(poi)
+                return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
 
-                    r.source('TMM_preprocessing_local.R')
-                    r_prep = r.g_tmm_preprocessing(r_df, referenceSample=train_params)
-
-                    with localconverter(robjects.default_converter + pandas2ri.converter):
-                        prep = robjects.conversion.rpy2py(r_prep)
-
-                    # Remove temporary rds file
-                    os.remove(poi)
-
-                    return pd.DataFrame(prep, index=data.index, columns=r.colnames(r_prep))
 
         elif prep_method == 'none':
             return data
@@ -542,30 +548,28 @@ def similarity(dataset1, dataset2, metric='Pearson'):
             "Datasets contain different feature lists (columns).")
 
     data = pd.concat([dataset1, dataset2])
-
-    match metric:
-        case 'Pearson':
-            sim = data.transpose().corr()
-
-        case 'Spearman':
-            sim = data.transpose().corr(method="spearman")
-
-        case 'CCC':
-            sim = calculate_ccc(data)
-
-        case 'Euclidean':
-            sim = calculate_euc(data)
-
-        case 'Manhattan':
-            sim = calculate_manhattan(data)
-
-        case 'Cosine':
-            sim = pd.DataFrame(cosine_distances(data), index=data.index, columns=data.index)
-
-        case other:
-            raise KeyError(metric + " is not one of Pearson, Spearman, CCC, Euclidean, Manhattan, or Cosine.")
-
-
+    
+    if metric == 'Pearson':
+        sim = data.transpose().corr()
+        
+    elif metric == 'Spearman':
+        sim = data.transpose().corr(method="spearman")
+        
+    elif metric == 'CCC':
+        sim = calculate_ccc(data)
+        
+    elif metric == 'Euclidean':
+        sim = calculate_euc(data)
+        
+    elif metric == 'Manhattan':
+        sim = calculate_manhattan(data)
+        
+    elif metric == 'Cosine':
+        sim = pd.DataFrame(cosine_distances(data), index=data.index, columns=data.index)
+        
+    else:
+        raise KeyError(metric + " is not one of Pearson, Spearman, CCC, Euclidean, Manhattan, or Cosine.")
+        
 
     # Subset similarity so that dataset1 is along rows and dataset2 along columns
 
@@ -609,7 +613,7 @@ def heatmap(similaritydf, myHarmonizer, user_metadata=None, kb_metadata=None):
     col_colors = None
 
     if kb_metadata is not None:
-        kbmeta = pd.DataFrame(json.loads(myHarmonizer.metadata))[kb_metadata]
+        kbmeta = myHarmonizer.metadata[kb_metadata]
 
         # Assign colors to each unique metadata category for kb
         kbuniquemeta = kbmeta.unique()
@@ -644,7 +648,7 @@ def heatmap(similaritydf, myHarmonizer, user_metadata=None, kb_metadata=None):
     plt.setp(cg.ax_heatmap.xaxis.get_majorticklabels(), rotation=30)
     plt.setp(cg.ax_heatmap.yaxis.get_majorticklabels(), rotation=30)
 
-    return plt
+    return cg
 
 
 
