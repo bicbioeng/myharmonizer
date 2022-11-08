@@ -68,7 +68,7 @@ toy_mH = mh.myHarmonizer('myHarmonizer-YYYY_mm_dd-HH_MM_SS.json')
 ```
 
 ### Generate synthetic data
-```
+```python
 # Get a shortened feature list for the toy dataset
 rawfeatures = toy_mH.modelmeta['encoder_metrics']['features']
 
@@ -84,12 +84,12 @@ feature identifier (e.g. ENSEMBL, Official Gene Symbol) that most closely aligns
 of the knowledge base. The original feature list for the knowledge base can be conveniently
 accessed as the 'features' attribute of the myHarmonizer class if unknown:
 
-```
+```python
 toy_mH.features
 ```
 
 ### Transform synthetic data to representation space of toy myHarmonizer knowledge base
-```
+```python
 transformeddata = toy_mH.transform(newdata)
 ```
 This step can also be broken down into individual transformations for niceify (harmonize feature list,
@@ -100,7 +100,7 @@ outlier removal, and add one psuedocount), normalize, scale, and encode.
 The representation of the knowledge base is stored as the data attribute of the myHarmonizer class. Consequently,
 to compare the new data to the existing data representation, the following can be used:
 
-```
+```python
 pearson_sim = mh.similarity(transformeddata, toy_mH.data, metric='Pearson')
 ```
 
@@ -113,7 +113,7 @@ To visualize the similarities as a heatmap (scaled from 0-1), there is a conveni
 seaborn clustermap function. Users can imput their own metadata for their sample index as a Series, and/or select one of the columns 
 of the metadata in the knowledge base, if metadata is included in the myHarmonizer object.
 
-```
+```python
 # Examine metadata in myHarmonizer object
 toy_mH.metadata
 
