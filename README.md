@@ -30,7 +30,7 @@ Parameters:
  - -v : bind container volume to host folder
  - --name : specify container name
  
-### Install package directly in Ubuntu
+### Install package with conda environment
 
 Requirements:
  - python <=3.9.12  
@@ -39,50 +39,32 @@ Clone git repo
 ```
 git clone https://github.com/bicbioeng/myharmonizer
 ```
--or- install package using pip
+In the myharmonizer/myharmonizer directory, create a conda environment from the .yml file.
+
 ```
-pip install ./myharmonizer
+conda env create -f myharmonizer.yml
 ```
 
-Install R in Unbuntu (if not previously installed)
-```
-# update indices
-RUN apt-get update -qq
-# install two helper packages we need
-RUN apt-get install -y --no-install-recommends software-properties-common dirmngr
-# add the signing key (by Michael Rutter) for these repos
-# To verify key, run gpg --show-keys /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-# Fingerprint: E298A3A825C0D65DFD57CBB651716619E084DAB9
-RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-# add the R 4.0 repo from CRAN -- adjust 'focal' to 'groovy' or 'bionic' as needed
-RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
-```
-Install R dependencies in Ubuntu
-```
-apt-get install -y libssl-dev
-apt-get install -y libcurl4-openssl-dev
+and then activate the environment before running the modules.
 
-Rscript -e "install.packages('BiocManager', repos='http://cran.us.r-project.org')"
-Rscript -e "BiocManager::install('RCurl')"
-Rscript -e "BiocManager::install('edgeR')"
-Rscript -e "BiocManager::install('DESeq2')"
-Rscript -e "install.packages('argparse',repos='http://cran.us.r-project.org')"
-Rscript -e "install.packages('plyr',repos='http://cran.us.r-project.org', dependencies = TRUE)"
 ```
+conda activate myharmonizer
+```
+
+For Ubuntu version 20.10 and above, it may be necessary to install libffi7_3. The dependency chain with R does not allow for updated versions of python to be used at the time of this writing.
 
 ## Running myharmonizer package
 ### Import packages and toy myHarmonizer object
-```
-python
 
+In python:
+```python
 import pandas as pd
 import numpy as np
 import myharmonizer as mh
-from importlib.resources import files
 
 
 # Build toy myHarmonizer
-toy_mH = mh.myHarmonizer(files(myharmonizer) / 'myHarmonizer-YYYY_mm_dd-HH_MM_SS.json')
+toy_mH = mh.myHarmonizer('myHarmonizer-YYYY_mm_dd-HH_MM_SS.json')
 ```
 
 ### Generate synthetic data
