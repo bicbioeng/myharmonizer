@@ -1,4 +1,4 @@
-name: base
+name: myharmonizer
 channels:
   - bioconda
   - conda-forge
