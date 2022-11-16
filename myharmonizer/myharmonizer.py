@@ -617,7 +617,7 @@ def heatmap(similaritydf, myHarmonizer, user_metadata=None, kb_metadata=None):
         kbmeta = myHarmonizer.metadata[kb_metadata]
 
         # Assign colors to each unique metadata category for kb
-        kbuniquemeta = kbmeta.unique()
+        kbuniquemeta = np.sort(kbmeta.unique())
         palette1 = dict(zip(kbuniquemeta, sns.color_palette("husl", len(kbuniquemeta))))
         kbhandles = [Patch(facecolor=palette1[name]) for name in palette1]
         col_colors = kbmeta.map(palette1)
@@ -625,7 +625,7 @@ def heatmap(similaritydf, myHarmonizer, user_metadata=None, kb_metadata=None):
 
     if user_metadata is not None:
         # Assign colors to each unique metadata category for user
-        uniquemeta = user_metadata.unique()
+        uniquemeta = np.sort(user_metadata.unique())
         palette2 = dict(zip(uniquemeta, sns.color_palette("husl", len(uniquemeta))))
         userhandles = [Patch(facecolor=palette2[name]) for name in palette2]
         row_colors = user_metadata.map(palette2)
@@ -637,17 +637,17 @@ def heatmap(similaritydf, myHarmonizer, user_metadata=None, kb_metadata=None):
 
     if kb_metadata is not None:
         ax = cg.ax_heatmap
-        first_legend = ax.legend(kbhandles, palette1, bbox_to_anchor=(0.2, 1),
+        first_legend = ax.legend(kbhandles, palette1, bbox_to_anchor=(0.45, 1),
                                  bbox_transform=plt.gcf().transFigure, loc="upper right")
         ax.add_artist(first_legend)
 
     if user_metadata is not None:
         ax = cg.ax_heatmap
-        ax.legend(userhandles, palette2, bbox_to_anchor=(0.35, 1),
+        ax.legend(userhandles, palette2, bbox_to_anchor=(0.25, 1),
                   bbox_transform=plt.gcf().transFigure, loc="upper right")
 
-    plt.setp(cg.ax_heatmap.xaxis.get_majorticklabels(), rotation=30)
-    plt.setp(cg.ax_heatmap.yaxis.get_majorticklabels(), rotation=30)
+    plt.setp(cg.ax_heatmap.xaxis.get_majorticklabels(), rotation=90)
+    plt.setp(cg.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
 
     return cg
 
