@@ -18,7 +18,7 @@ These functions can also be performed in the online application at: [https://myh
 
 The most straightforward way of running myharmonizer via command line is by setting up a Docker instance. First, make sure Docker is installed. If using a Windows system, then the Docker can run through WSL2.
 
-First, load the docker image:
+Load the docker image:
 
 ```
 docker load < myharmonizerdock.tar.gz
