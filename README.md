@@ -14,21 +14,25 @@ In short, myHarmonizer performs the following:
 ## Installation
 ### Using Docker
 
-The most straightforward way of running myharmonizer via command line is by setting up a Docker instance. First, make sure Docker is installed, then run:
+The most straightforward way of running myharmonizer via command line is by setting up a Docker instance. First, make sure Docker is installed. If using a Windows system, then the Docker can run through WSL2.
+
+First, load the docker image:
 
 ```
-docker run -d -e GRANT_SUDO=yes --user root --rm -p 8888:8888 -e NB_USER='jovyan' -e CHOWN_HOME=yes -w "/app" -e CHOWN_HOME_OPTS='-R' -v /home/tuyendo/USD/app/:/app --name Myharmonizer us-central1-docker.pkg.dev/nosi-usd-biofilm/nosi-usd-biofilm-arti/myharmonizer
+docker load < myharmonizerdock.tar.gz
+```
+
+then run the container interactively:
+
+```
+docker run -it --rm -v "$HOME"/myharmonizeroutput:/app/myharmonizeroutput myharmonizerdock
 ```
 Parameters:
- - -d: detach mode
- - GRANT_SUDO: grant super user for nb user
- - --user: specify docker execute user
- - --rm: automatic clean container when container stop
- - -p: export container container port for host using [host:container]
- - NB_USER: specify nb user
- - CHOWN_HOME=yes -w "/app" -e CHOWN_HOME_OPTS='-R' : Change working directory
- - -v : bind container volume to host folder
- - --name : specify container name
+ - -it: interactive mode
+ - --rm: automatically clean container when container stopped
+ - -v: bind container volume to host folder. Host folder will by default be in myharmonizeroutput folder of WSL2 or Linux home folder.
+ 
+ Scripts are not automatically added to the path, so it is easiest to run python in the default /app/myharmonizer directory. 
  
 ### Install package with conda environment
 
