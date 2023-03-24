@@ -60,20 +60,21 @@ conda activate myharmonizer
 For Ubuntu version 20.10 and above, it may be necessary to install libffi7_3. The dependency chain with R does not allow for updated versions of python to be used at the time of this writing.
 
 ## Running myharmonizer package
-### Import packages and toy myHarmonizer object
+### 1) Import packages and toy myHarmonizer object
 
 In python:
 ```python
 import pandas as pd
 import numpy as np
 import myharmonizer as mh
+from matplotlib import pyplot as plt
 
 
 # Build toy myHarmonizer
 toy_mH = mh.myHarmonizer('myHarmonizer-YYYY_mm_dd-HH_MM_SS.json')
 ```
 
-### Generate synthetic data
+### 2) Generate synthetic data
 ```python
 # Get a shortened feature list for the toy dataset
 rawfeatures = toy_mH.modelmeta['encoder_metrics']['features']
@@ -94,14 +95,14 @@ accessed as the 'features' attribute of the myHarmonizer class if unknown:
 toy_mH.features
 ```
 
-### Transform synthetic data to representation space of toy myHarmonizer knowledge base
+### 3) Transform synthetic data to representation space of toy myHarmonizer knowledge base
 ```python
 transformeddata = toy_mH.transform(newdata)
 ```
 This step can also be broken down into individual transformations for niceify (harmonize feature list,
 outlier removal, and add one psuedocount), normalize, scale, and encode.
 
-### Calculate similarities
+### 4) Calculate similarities
 
 The representation of the knowledge base is stored as the data attribute of the myHarmonizer class. Consequently,
 to compare the new data to the existing data representation, the following can be used:
@@ -113,7 +114,7 @@ pearson_sim = mh.similarity(transformeddata, toy_mH.data, metric='Pearson')
 For this function, the similarity metric can be selected from one of 'Pearson', 'Spearman', 'CCC', 'Euclidean', 'Manhattan', 
 or 'Cosine'.
 
-### Visualize similarities
+### 5) Visualize similarities
 
 To visualize the similarities as a heatmap (scaled from 0-1), there is a convenience function that implements a heatmaps based on the
 seaborn clustermap function. Users can imput their own metadata for their sample index as a Series, and/or select one of the columns 
@@ -125,6 +126,7 @@ toy_mH.metadata
 
 # Plot heatmap
 mh.heatmap(pearson_sim, toy_mH, user_metadata=None, kb_metadata='Meta A')
+plt.savefig('Fig.png')
 ```
 
 
