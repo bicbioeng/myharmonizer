@@ -131,7 +131,7 @@ plt.savefig('Fig.png')
 
 ## Citations and Licensing
 
-myharmonizer: a Python package for the transformation of add-on datasets and similarity calculations with datasets in myharmonizer JSON objects. 
+myharmonizer: a Python package for the transformation of add-on datasets and similarity calculations with datasets in myharmonizer JSON objects. \
 Copyright (C) 2024 bicbioeng
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
