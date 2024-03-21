@@ -11,7 +11,7 @@ In short, myHarmonizer performs the following:
 * Calculate similarities between user samples and knowledge samples
 * Visualize similarity matrices
 
-These functions can also be performed in the online application at: [https://myharmonizer.bicbioeng.org](https://myharmonizer.bicbioeng.org)
+These functions can also be performed in the online application at: [http://harmonizer.bicbioeng.net/](http://harmonizer.bicbioeng.net/)
 
 ## Installation
 ### Using Docker
