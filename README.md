@@ -36,7 +36,7 @@ Parameters:
  
  Scripts are not automatically added to the path, so it is easiest to run python in the default /app/myharmonizer directory. 
  
-### Install package with conda environment
+### Install package with conda environment on Windows subsystem for Linux (WSL2)
 
 Requirements:
  - python <=3.9.12  
