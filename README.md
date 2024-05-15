@@ -136,7 +136,7 @@ toy_mH.metadata
 mh.heatmap(pearson_sim, toy_mH, user_metadata=None, kb_metadata='Meta A')
 plt.savefig('Fig.png')
 ```
-
+When using Docker, files can be found in the host folder, which by default is myharmonizeroutput folder in the path before the colon in the Docker run command.
 ## Citations and Licensing
 
 myharmonizer: a Python package for the transformation of add-on datasets and similarity calculations with datasets in myharmonizer JSON objects. \
