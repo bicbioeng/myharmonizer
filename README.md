@@ -21,13 +21,21 @@ The most straightforward way of running myharmonizer via command line is by sett
 Load the docker image:
 
 ```
+## WSL or Linux
 docker load < myharmonizerdock.tar.gz
+
+## Windows
+docker load -i .\myharmonizerdock.tar.gz
 ```
 
 then run the container interactively:
 
 ```
+## WSL or Linux
 docker run -it --rm -v "$HOME"/myharmonizeroutput:/app/myharmonizeroutput myharmonizerdock
+
+## Windows
+docker run -it –rm -v “c:\user\username\myharmonizeroutput:/app/myharmonizeroutput” myharmonizerdock
 ```
 Parameters:
  - -it: interactive mode
